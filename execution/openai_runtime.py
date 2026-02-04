@@ -13,7 +13,7 @@ def calculate(a: float, b: float) -> float:
     return a + b
 
 
-# ✅ Correct 2025 OpenAI Responses API tool schema
+# Correct 2025 OpenAI Responses API tool schema
 tools = [
     {
         "type": "function",
@@ -31,7 +31,7 @@ tools = [
 ]
 
 
-def run_with_openai(query: str):
+def run_openai(query: str):
     if USE_MOCK:
         return {"mock": True, "input": query, "tool_demo": calculate(a=2, b=3)}
 

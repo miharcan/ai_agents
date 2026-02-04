@@ -1,12 +1,6 @@
 from core.react_agent import ReActAgent
 
-def main(query):
-    agent = ReActAgent()
-    
-    response = agent.run(query)
-
-    print("\n=== REACT AGENT OUTPUT ===\n")
-    print(response)
-
-if __name__ == "__main__":
-    main()
+def main(query: str, llm_backend: str):
+    agent = ReActAgent(llm_backend)
+    result = agent.run(query)
+    print(result)

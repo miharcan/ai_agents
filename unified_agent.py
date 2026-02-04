@@ -1,5 +1,5 @@
 from rag.document_index import load_docs
-from execution.openai_runtime import run_with_openai
+from execution.openai_runtime import run_openai
 from multiagent.autogen_agents import Researcher, Analyst
 from orchestration.langgraph_graph import app
 
@@ -23,12 +23,12 @@ Question:
 Provide a concise, accurate answer grounded in the documents.
 """
 
-    rag_answer = run_with_openai(rag_prompt)
+    rag_answer = run_openai(rag_prompt)
 
     # ---- 2. Multi-agent reasoning ----
     research = Researcher().run(query)
     analysis = Analyst().run(research)
-    multiagent_answer = run_with_openai(analysis)
+    multiagent_answer = run_openai(analysis)
 
     # ---- 3. LangGraph orchestration ----
     graph_result = app.invoke({"query": query})

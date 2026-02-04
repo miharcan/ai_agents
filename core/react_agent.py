@@ -1,8 +1,11 @@
 from core.agent_kernel import AgentKernel
-from execution.openai_runtime import run_with_openai
-
+from execution.llm_runtime import run_llm
 
 class ReActAgent(AgentKernel):
+    def __init__(self, llm_backend: str):
+        self.llm_backend = llm_backend
+        super().__init__()
+
     def run(self, query):
         steps = []
 
@@ -36,4 +39,4 @@ Reasoning trace:
 Provide a clear, concise final answer to the original question.
 """
 
-        return run_with_openai(prompt)
+        return run_llm(prompt, backend=self.llm_backend)

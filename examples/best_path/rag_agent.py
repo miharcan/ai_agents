@@ -1,25 +1,21 @@
+from execution.llm_runtime import run_llm
 from rag.document_index import load_docs
-from execution.openai_runtime import run_with_openai
 
+def main(query: str, llm_backend: str):
+    print(f"LLM backend: {llm_backend}")
 
-def main(query):
     retriever = load_docs()
-
     nodes = retriever.retrieve(query)
 
     context = "\n\n".join(
-        f"Title: {n.metadata.get('title', '')}\n{n.text}"
-        for n in nodes
+        node.get_content() for node in nodes
     )
 
     prompt = f"""
 You are a research assistant.
+Answer the question using ONLY the context below.
 
-Using the following retrieved arXiv abstracts, answer the question below.
-Focus on summarising themes, methods, and key findings.
-Do not invent citations beyond what is provided.
-
-Retrieved papers:
+Context:
 {context}
 
 Question:
@@ -28,7 +24,5 @@ Question:
 Answer:
 """
 
-    answer = run_with_openai(prompt)
-
-    print("\n=== RAG AGENT OUTPUT (arXiv-grounded) ===\n")
-    print(answer)
+    response = run_llm(prompt, backend=llm_backend)
+    print(response)
