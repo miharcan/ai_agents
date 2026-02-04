@@ -1,7 +1,22 @@
-langgraph
-autogen-agent
-llama-index
-crewai
-openai
-python-dotenv
+# Core runtime
+python-dotenv>=1.0.0
+requests>=2.31.0
 
+# LLM backends
+openai>=1.6.0
+
+# Local LLM (Ollama HTTP client)
+ollama>=0.1.7
+
+# Agent + orchestration
+langgraph>=0.0.40
+
+# RAG / indexing
+llama-index>=0.10.30
+sentence-transformers>=2.2.2
+
+# Vector store (CPU)
+faiss-cpu>=1.7.4
+
+# Utilities
+tqdm>=4.66.1
