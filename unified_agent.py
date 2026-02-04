@@ -1,41 +1,48 @@
-from core.react_agent import ReActAgent
-from orchestration.langgraph_graph import app
-from multiagent.autogen_agents import Researcher, Analyst, Writer
 from rag.document_index import load_docs
 from execution.openai_runtime import run_with_openai
+from multiagent.autogen_agents import Researcher, Analyst
+from orchestration.langgraph_graph import app
 
 
 def unified_agent(query):
-    # ---- 1. Run RAG ----
-    rag_engine = load_docs("docs/")
-    rag_raw = rag_engine.query(query)
+    # ---- 1. RAG (retrieval only) ----
+    retriever = load_docs("docs/")
+    nodes = retriever.retrieve(query)
+    context = "\n".join(node.text for node in nodes)
 
-    # Extract only the answer text (no metadata, no nodes, no IDs)
-    try:
-        rag_answer = rag_raw.response
-    except AttributeError:
-        rag_answer = rag_raw  # handle mock engines
-    
-    # ---- 2. Multi-agent pipeline ----
+    rag_prompt = f"""
+You are a strategy assistant.
+
+Use the following internal documents as source of truth:
+
+{context}
+
+Question:
+{query}
+
+Provide a concise, accurate answer grounded in the documents.
+"""
+
+    rag_answer = run_with_openai(rag_prompt)
+
+    # ---- 2. Multi-agent reasoning ----
     research = Researcher().run(query)
     analysis = Analyst().run(research)
-    llm_result = run_with_openai(analysis)
+    multiagent_answer = run_with_openai(analysis)
 
     # ---- 3. LangGraph orchestration ----
     graph_result = app.invoke({"query": query})
+    graph_answer = graph_result.get("final_answer")
 
-    # Extract final graph answer
-    graph_answer = graph_result.get("final_answer", None)
+    # ---- 4. Select best answer (simple heuristic for demo) ----
+    final_answer = rag_answer or graph_answer or multiagent_answer
 
-    # ---- 4. Pick best overall answer ----
-    final_answer = rag_answer or graph_answer or "No answer found."
-
-    # ---- 5. Return clean structured output ----
+    # ---- 5. Return structured output ----
     return {
         "answer": final_answer,
         "components": {
             "rag": rag_answer,
-            "multiagent": llm_result,
-            "graph": graph_result
-        }
+            "multiagent": multiagent_answer,
+            "graph": graph_result,
+        },
     }
