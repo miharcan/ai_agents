@@ -45,16 +45,23 @@ python run.py --mode single --query "What is diphoton production at the LHC?"
 
 ### 2. ReAct Agent – Reasoning + Acting
 
-## What it is:
-An agent that follows a Reason → Act → Observe loop.
+**What it is:**
+An agent that follows a Reason → Act → Observe loop:
+- Uses an explicit **reasoning loop** instead of a single LLM call
+- Alternates between **thinking**, **acting (tool use / retrieval)**, and **observing results**
+- Makes intermediate decisions **visible and inspectable**
+- Reduces hallucinations by grounding actions in observations
+- Well-suited for **multi-step questions**, analysis, and controlled tool usage
+- Serves as the **foundation for the multi-agent orchestration** mode
 
-## Demo shows:
+
+**Demo shows:**
 
 - Explicit intermediate reasoning
 - Tool selection based on thoughts
 - Iterative problem solving
 
-## Why it matters:
+**Why it matters:**
 ReAct shows how structure improves reliability without adding external data.
 
 ```bash
@@ -63,16 +70,16 @@ python run.py --mode react --llm local --query "Show research on dialogue safety
 
 ### 3. RAG Agent – Grounded Knowledge
 
-## What RAG:
+** What RAG:**
 A Retrieval-Augmented Generation (RAG) pipeline over a real dataset.
 
-## Demo shows:
+** Demo shows:**
 
 - Embedding-based semantic search
 - Separation of retrieval and generation
 - Answers grounded in source documents
 
-## Why it matters:
+** Why it matters:**
 This is where agents stop hallucinating and start behaving like systems.
 
 ```bash
@@ -84,33 +91,33 @@ Subsequent runs reuse the FAISS index for speed.
 
 ### 4. Multi-Agent – Orchestration
 
-## What it is:
+** What it is:**
 A composed agent that coordinates:
 - retrieval
 - reasoning
 - synthesis
 
-## Demo shows:
+** Demo shows:**
 - Clear separation of responsibilities
 - Reuse of existing agents
 - More robust, explainable outputs
 
 
-## Why it matters:
+** Why it matters:**
 This mirrors how production agent systems are actually built.
 
 ```bash
 python run.py --mode multi --query "Summarise recent diphoton research"
 ```
 
-## Example Data: arXiv Corpus
+** Example Data: arXiv Corpus**
 The RAG and Multi-Agent modes use the public arXiv metadata snapshot (~5M papers):
 - Titles
 - Authors
 - Categories
 - Abstracts
 
-## Indexing Stack
+### Indexing Stack
 
 Embeddings: sentence-transformers/all-MiniLM-L6-v2
 
@@ -118,7 +125,7 @@ Vector Store: FAISS (local, persisted)
 
 Index Lifecycle: build once → reuse across runs
 
-## LLM Backends
+### LLM Backends
 
 All agent modes use a shared LLM abstraction.
 
@@ -144,10 +151,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Usage
+### Usage
 
 All demos share a single entrypoint:
 
 ```bash
-python run.py --mode <single|react|rag|multi> --query "<your question>"
+python run.py --mode <single|react|rag|multi> [--llm local|openai] --query "<your question>"
 ```
