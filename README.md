@@ -1,160 +1,188 @@
 # AI Agents Playground
 
-A minimal, end-to-end demonstration of modern **agent architectures**, progressing from simple LLM calls to multi-agent orchestration:
+A minimal, end-to-end demonstration of **agent architectures for real system reasoning**, progressing from:
 
 **Single → ReAct → RAG → Multi-Agent**
 
-This repository is intentionally **not a framework**.  
-It is a **clear, inspectable reference implementation** designed for learning, demos, and architectural discussion.
+with **explicit epistemic control** and **real infrastructure data**.
+
+This repository is designed as a **clear learning and experimentation reference**, not a framework.
 
 ---
 
-## What This Repo Demonstrates
+## Core Focus: Runtime & Infrastructure Debugging
 
-This project shows how agent systems *evolve in capability* as you add structure:
+The primary focus of this project is **infrastructure-grade reasoning over runtime evidence**, such as:
 
-| Mode   | Adds What? | Why It Exists |
-|------|------------|---------------|
-| Single | LLM call | Baseline behaviour |
-| ReAct | Reasoning + tools | Controlled thinking & actions |
-| RAG | External knowledge | Grounded answers |
-| Multi | Coordination | Separation of concerns |
+- Linux system logs
+- OpenStack service logs
+- (extensible to metrics, traces, and events)
 
-Each mode builds directly on the previous one.
+The goal is to explore how modern agent architectures can:
+
+- reason over **what actually happened**, not assumptions
+- remain grounded in **observed system behavior**
+- avoid hallucination by **controlling evidence domains explicitly**
+- scale from simple summarisation to multi-step diagnostic reasoning
+
+This makes the repository especially relevant for:
+- infrastructure debugging
+- SRE / platform engineering workflows
+- operational AI agents
+- incident analysis and post-mortems
 
 ---
 
-## Agent Modes Explained
+## Epistemic Domains (Key Design Idea)
 
-### 1. Single Agent – *Baseline LLM*
+A central design principle in this repo is **explicit epistemic separation**.
 
-**What it is:**  
-A direct prompt → response interaction with an LLM.
+Agents do not implicitly decide *what kind of truth* they are allowed to use — this is controlled at runtime.
 
-**What it demonstrates:**
-- Pure model capability
-- Prompt sensitivity
-- No memory, no tools, no grounding
+### Runtime Domain (Primary)
 
-**Why it matters:**  
-This is the control group. Every more complex agent should be compared against this.
+The **runtime** domain is the default and primary focus.
 
-```bash
-python run.py --mode single --query "What is diphoton production at the LHC?"
+It represents **ground-truth operational evidence**, such as:
+
+- Linux boot logs
+- OpenStack control-plane logs
+- service startup sequences
+- error, retry, and timeout behavior
+
+When operating in this domain, agents are expected to:
+- reason strictly from retrieved evidence
+- summarise, correlate, and interpret observed signals
+- avoid theoretical explanations unless explicitly enabled
+
+### Knowledge Domain (Secondary, Optional)
+
+The **knowledge** domain (e.g. arXiv) is intentionally isolated.
+
+It represents **theoretical and contextual knowledge**, such as:
+- academic research
+- known design patterns
+- prior studies and explanations
+
+This domain is useful for:
+- understanding *why* a class of problems exists
+- contextualising observed failures
+- research and learning use-cases
+
+It is **not** used by default for infrastructure debugging.
+
+---
+
+## Agent Modes
+
+All agent modes share:
+- a unified CLI
+- a common agent kernel
+- swappable LLM backends (local or OpenAI)
+- deterministic, inspectable execution paths
+
+### Single Agent
+Direct LLM question answering with no tools.
+Useful as a baseline.
+
+### ReAct Agent
+Reasoning-and-acting loop with explicit tool usage.
+This is the **core mode for infrastructure debugging**.
+
+### RAG Agent
+Retrieval-augmented reasoning over domain-specific corpora:
+- runtime logs (Linux / OpenStack)
+- knowledge corpora (arXiv)
+
+### Multi-Agent
+Orchestration of multiple reasoning components.
+Designed for future expansion into coordinated diagnostic agents.
+
+---
+
+## Runtime Evidence Pipeline
+
+For infrastructure domains, data flows through a clear pipeline:
+
+```
+Raw logs
+ → light normalization
+ → coarse segmentation
+ → structured narration (signal extraction)
+ → retrieval
+ → agent reasoning
 ```
 
-### 2. ReAct Agent – Reasoning + Acting
+Narration **highlights signals** (e.g. legacy behavior, retries, disabled features)
+without hard-coding diagnoses or rules.
 
-**What it is:**
-An agent that follows a Reason → Act → Observe loop:
-- Uses an explicit **reasoning loop** instead of a single LLM call
-- Alternates between **thinking**, **acting (tool use / retrieval)**, and **observing results**
-- Makes intermediate decisions **visible and inspectable**
-- Reduces hallucinations by grounding actions in observations
-- Well-suited for **multi-step questions**, analysis, and controlled tool usage
-- Serves as the **foundation for the multi-agent orchestration** mode
+Agents remain responsible for interpretation.
 
+---
 
-**Demo shows:**
+## Example Usage
 
-- Explicit intermediate reasoning
-- Tool selection based on thoughts
-- Iterative problem solving
-
-**Why it matters:**
-ReAct shows how structure improves reliability without adding external data.
+### Infrastructure / Runtime Debugging
 
 ```bash
-python run.py --mode react --llm local --query "Show research on dialogue safety"
+python run.py \
+  --mode react \
+  --llm local \
+  --domain runtime \
+  --query "Are there any issues or anomalies in this Linux boot?"
 ```
 
-### 3. RAG Agent – Grounded Knowledge
-
-** What RAG:**
-A Retrieval-Augmented Generation (RAG) pipeline over a real dataset.
-
-** Demo shows:**
-
-- Embedding-based semantic search
-- Separation of retrieval and generation
-- Answers grounded in source documents
-
-** Why it matters:**
-This is where agents stop hallucinating and start behaving like systems.
+### Research / Knowledge Exploration
 
 ```bash
-python run.py --mode rag --query "Diphoton production at the LHC"
+python run.py \
+  --mode react \
+  --llm local \
+  --domain knowledge \
+  --query "Show research on dialogue system safety"
 ```
 
-On first run, the arXiv index is built and cached locally.
-Subsequent runs reuse the FAISS index for speed.
+---
 
-### 4. Multi-Agent – Orchestration
+## Why arXiv Is Included
 
-** What it is:**
-A composed agent that coordinates:
-- retrieval
-- reasoning
-- synthesis
+arXiv is included **deliberately but safely**.
 
-** Demo shows:**
-- Clear separation of responsibilities
-- Reuse of existing agents
-- More robust, explainable outputs
+It serves as:
+- a contrasting domain to runtime evidence
+- a demonstration that the same agent architecture can reason over
+  very different kinds of truth
+- a foundation for future “runtime + theory” explanations (opt-in only)
 
+arXiv is **never mixed implicitly** with infrastructure logs.
 
-** Why it matters:**
-This mirrors how production agent systems are actually built.
+---
 
-```bash
-python run.py --mode multi --query "Summarise recent diphoton research"
-```
+## What This Repository Is (and Isn’t)
 
-** Example Data: arXiv Corpus**
-The RAG and Multi-Agent modes use the public arXiv metadata snapshot (~5M papers):
-- Titles
-- Authors
-- Categories
-- Abstracts
+**This repo is:**
+- a learning and experimentation playground
+- a reference for clean agent architecture
+- focused on reasoning quality, not benchmarks
+- intentionally minimal and readable
 
-### Indexing Stack
+**This repo is not:**
+- a production framework
+- an automated remediation system
+- a rules-based expert system
 
-Embeddings: sentence-transformers/all-MiniLM-L6-v2
+---
 
-Vector Store: FAISS (local, persisted)
+## Status & Direction
 
-Index Lifecycle: build once → reuse across runs
+Current strengths:
+- clean agent abstractions
+- explicit domain control
+- grounded runtime reasoning
+- extensible evidence pipelines
 
-### LLM Backends
-
-All agent modes use a shared LLM abstraction.
-
-Select at runtime:
-
-```bash
---llm openai
---llm local
-```
-
-This allows direct comparison between:
-
-hosted vs local models
-
-reasoning quality vs grounding
-
-latency vs cost
-
-```bash
-Installation
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Usage
-
-All demos share a single entrypoint:
-
-```bash
-python run.py --mode <single|react|rag|multi> [--llm local|openai] --query "<your question>"
-```
+Planned / natural extensions:
+- OpenStack + Linux cross-layer diagnostics
+- baseline vs incident comparison
+- severity-aware narration
+- metrics and trace integration

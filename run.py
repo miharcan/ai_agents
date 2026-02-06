@@ -1,35 +1,33 @@
 import argparse
-import sys
 
 
-def run_single(query, llm_backend):
+def run_single(query, llm_backend, domain):
     from examples.best_path import single_agent
-    single_agent.main(query, llm_backend)
+    single_agent.main(query, llm_backend, domain)
 
 
-def run_react(query, llm_backend):
+def run_react(query, llm_backend, domain):
     from examples.best_path import react_agent
-    react_agent.main(query, llm_backend)
+    react_agent.main(query, llm_backend, domain)
 
 
-def run_rag(query, llm_backend):
+def run_rag(query, llm_backend, domain):
     from examples.best_path import rag_agent
-    rag_agent.main(query, llm_backend)
+    rag_agent.main(query, llm_backend, domain)
 
 
-def run_multi(query, llm_backend):
+def run_multi(query, llm_backend, domain):
     from examples.best_path import multi_agent
-    multi_agent.main(query, llm_backend)
+    multi_agent.main(query, llm_backend, domain)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="AI Agents Playground – Golden Path Runner"
+        description="AI Agents Playground"
     )
 
     parser.add_argument(
         "--mode",
-        type=str,
         choices=["single", "react", "rag", "multi"],
         required=True,
         help="Which agent demo to run",
@@ -37,28 +35,34 @@ def main():
 
     parser.add_argument(
         "--query",
-        type=str,
         required=True,
-        help="User query to run through the agent system",
+        help="User query"
     )
 
     parser.add_argument(
         "--llm",
         choices=["openai", "local"],
         default="openai",
-        help="LLM backend to use"
+        help="LLM backend"
+    )
+
+    parser.add_argument(
+        "--domain",
+        choices=["runtime", "knowledge"],
+        default="runtime",
+        help="Epistemic domain"
     )
 
     args = parser.parse_args()
 
     if args.mode == "single":
-        run_single(args.query, args.llm)
+        run_single(args.query, args.llm, args.domain)
     elif args.mode == "react":
-        run_react(args.query, args.llm)
+        run_react(args.query, args.llm, args.domain)
     elif args.mode == "rag":
-        run_rag(args.query, args.llm)
+        run_rag(args.query, args.llm, args.domain)
     elif args.mode == "multi":
-        run_multi(args.query, args.llm)
+        run_multi(args.query, args.llm, args.domain)
 
 
 if __name__ == "__main__":

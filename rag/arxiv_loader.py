@@ -1,7 +1,7 @@
 import json
 from llama_index.core import Document
 
-def load_arxiv_documents(json_path, limit=1000):
+def load_arxiv_documents(json_path, limit=1000000):
     docs = []
     with open(json_path, "r") as f:
         for i, line in enumerate(f):

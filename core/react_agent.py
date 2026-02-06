@@ -6,6 +6,17 @@ class ReActAgent(AgentKernel):
         self.llm_backend = llm_backend
         super().__init__()
 
+    def route_tools(self, thought):
+        domain = self.state.get("domain", "runtime")
+
+        if domain == "runtime":
+            return ("search_runtime_evidence", {"query": thought})
+
+        if domain == "knowledge":
+            return ("search_arxiv", {"query": thought})
+
+        return None
+
     def run(self, query):
         steps = []
 
@@ -13,11 +24,13 @@ class ReActAgent(AgentKernel):
             thought = self.think(query)
             tool_call = self.route_tools(thought)
 
-            if tool_call:
-                name, args = tool_call
-                result = self.tools.call(name, **args)
-                steps.append((thought, name, args, result))
-                self.observe(result)
+            if not tool_call:
+                break  # no more evidence needed
+
+            name, args = tool_call
+            result = self.tools.call(name, **args)
+            self.observe(result)
+            steps.append((thought, name, args, result))
 
         return self.final_answer(query, steps)
 

@@ -1,32 +1,29 @@
-from execution.llm_runtime import run_llm
+from core.react_agent import ReActAgent
+from core.tools import RuntimeEvidenceTool, ArxivSearchTool
+from rag.linux_index import load_linux_retriever
 from rag.document_index import load_docs
 
-def main(query: str, llm_backend: str):
-    print(f"LLM backend: {llm_backend}")
 
-    retriever = load_docs()
-    nodes = retriever.retrieve(query)
+def main(query, llm_backend, domain):
+    # Coordinator / primary agent
+    coordinator = ReActAgent(llm_backend=llm_backend)
+    coordinator.state["domain"] = domain
 
-    context = "\n\n".join(
-        node.get_content() for node in nodes
-    )
+    # --- Domain-specific tool wiring ---
+    if domain == "runtime":
+        linux_retriever = load_linux_retriever(
+            "data/sources/linux/Linux.log"
+        )
+        coordinator.tools.register(
+            RuntimeEvidenceTool(linux_retriever=linux_retriever)
+        )
 
-    synthesis_prompt = f"""
-You are a senior research agent.
+    elif domain == "knowledge":
+        arxiv_retriever = load_docs()
+        coordinator.tools.register(
+            ArxivSearchTool(arxiv_retriever)
+        )
 
-You have retrieved the following research context:
-{context}
-
-Your task:
-- Synthesize a coherent, high-level answer
-- Cite themes and insights
-- Be concise and factual
-
-Question:
-{query}
-
-Answer:
-"""
-
-    result = run_llm(synthesis_prompt, backend=llm_backend)
-    print(result)
+    # --- Run ---
+    answer = coordinator.run(query)
+    print(answer)

@@ -1,28 +1,30 @@
-from execution.llm_runtime import run_llm
+from core.react_agent import ReActAgent
+from core.tools import RuntimeEvidenceTool, ArxivSearchTool
+from rag.linux_index import load_linux_retriever
 from rag.document_index import load_docs
 
-def main(query: str, llm_backend: str):
-    print(f"LLM backend: {llm_backend}")
 
-    retriever = load_docs()
-    nodes = retriever.retrieve(query)
+def main(query, llm_backend, domain):
+    agent = ReActAgent(llm_backend=llm_backend)
+    agent.state["domain"] = domain
 
-    context = "\n\n".join(
-        node.get_content() for node in nodes
-    )
+    # --- Domain-specific RAG ---
+    if domain == "runtime":
+        linux = load_linux_retriever("data/sources/linux/Linux.log")
+        openstack = load_openstack_retriever("data/sources/openstack/openstack.log")
 
-    prompt = f"""
-You are a research assistant.
-Answer the question using ONLY the context below.
+        agent.tools.register(
+            RuntimeEvidenceTool(
+                linux_retriever=linux,
+                openstack_retriever=openstack
+            )
+        )
 
-Context:
-{context}
+    elif domain == "knowledge":
+        arxiv_retriever = load_docs()
+        agent.tools.register(
+            ArxivSearchTool(arxiv_retriever)
+        )
 
-Question:
-{query}
-
-Answer:
-"""
-
-    response = run_llm(prompt, backend=llm_backend)
-    print(response)
+    answer = agent.run(query)
+    print(answer)
