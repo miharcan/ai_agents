@@ -1,188 +1,117 @@
-# AI Agents Playground
+# AI Agents Playground — Runtime & Infrastructure Reasoning
 
-A minimal, end-to-end demonstration of **agent architectures for real system reasoning**, progressing from:
+A **minimal, end‑to‑end demonstration of modern agent architectures** for **runtime and infrastructure diagnostics**, built around **real system logs**, **OpenStack control‑plane events**, and **swappable LLM backends**.
 
-**Single → ReAct → RAG → Multi-Agent**
-
-with **explicit epistemic control** and **real infrastructure data**.
-
-This repository is designed as a **clear learning and experimentation reference**, not a framework.
+This repository is a **reference implementation** showing how agents can reason over operational evidence.
 
 ---
 
-## Core Focus: Runtime & Infrastructure Debugging
+## Why
 
-The primary focus of this project is **infrastructure-grade reasoning over runtime evidence**, such as:
+Most “AI troubleshooting” tools hallucinate answers when evidence is missing.
 
-- Linux system logs
-- OpenStack service logs
-- (extensible to metrics, traces, and events)
+This project does the opposite:
 
-The goal is to explore how modern agent architectures can:
+- Enforces **evidence scope**
+- Detects **evidence gaps**
+- Separates **baseline vs incident behavior**
+- Guides the **next diagnostic step**
+- Refuses to guess
 
-- reason over **what actually happened**, not assumptions
-- remain grounded in **observed system behavior**
-- avoid hallucination by **controlling evidence domains explicitly**
-- scale from simple summarisation to multi-step diagnostic reasoning
-
-This makes the repository especially relevant for:
-- infrastructure debugging
-- SRE / platform engineering workflows
-- operational AI agents
-- incident analysis and post-mortems
+The result is an agent that behaves like a **senior infrastructure engineer**, not a chatbot.
 
 ---
 
-## Epistemic Domains (Key Design Idea)
+## What this repo demonstrates
 
-A central design principle in this repo is **explicit epistemic separation**.
+### Agent architectures
+- **Single Agent** – plain LLM reasoning (no tools)
+- **ReAct Agent** – reasoning + tool use
+- **RAG Agent** – retrieval‑augmented reasoning
+- **Multi‑Agent** – orchestration patterns
 
-Agents do not implicitly decide *what kind of truth* they are allowed to use — this is controlled at runtime.
+### Runtime reasoning (core focus)
+- Linux boot and system logs
+- OpenStack control‑plane and service logs
+- Baseline vs abnormal comparison
+- Subsystem‑aware diagnostics (API, compute, MQ, DB)
+- Cross‑layer reasoning (host ↔ control plane)
 
-### Runtime Domain (Primary)
-
-The **runtime** domain is the default and primary focus.
-
-It represents **ground-truth operational evidence**, such as:
-
-- Linux boot logs
-- OpenStack control-plane logs
-- service startup sequences
-- error, retry, and timeout behavior
-
-When operating in this domain, agents are expected to:
-- reason strictly from retrieved evidence
-- summarise, correlate, and interpret observed signals
-- avoid theoretical explanations unless explicitly enabled
-
-### Knowledge Domain (Secondary, Optional)
-
-The **knowledge** domain (e.g. arXiv) is intentionally isolated.
-
-It represents **theoretical and contextual knowledge**, such as:
-- academic research
-- known design patterns
-- prior studies and explanations
-
-This domain is useful for:
-- understanding *why* a class of problems exists
-- contextualising observed failures
-- research and learning use-cases
-
-It is **not** used by default for infrastructure debugging.
+### Knowledge reasoning (secondary)
+- arXiv research corpus
+- Isolated from runtime evidence
+- Explicit domain selection
 
 ---
 
-## Agent Modes
+## Key design principles
 
-All agent modes share:
-- a unified CLI
-- a common agent kernel
-- swappable LLM backends (local or OpenAI)
-- deterministic, inspectable execution paths
+### 1. Evidence‑first reasoning
+Agents reason **only** from retrieved runtime evidence.
+If data is missing, the agent says so.
 
-### Single Agent
-Direct LLM question answering with no tools.
-Useful as a baseline.
+### 2. Explicit scope & gaps
+Every answer declares:
+- what evidence was used
+- what evidence is missing
+- what would be needed next
 
-### ReAct Agent
-Reasoning-and-acting loop with explicit tool usage.
-This is the **core mode for infrastructure debugging**.
+### 3. No hallucination paths
+If logs do not support a conclusion, no conclusion is drawn.
 
-### RAG Agent
-Retrieval-augmented reasoning over domain-specific corpora:
-- runtime logs (Linux / OpenStack)
-- knowledge corpora (arXiv)
-
-### Multi-Agent
-Orchestration of multiple reasoning components.
-Designed for future expansion into coordinated diagnostic agents.
+### 4. Runtime ≠ Knowledge
+Operational logs and research papers are treated as **separate epistemic domains**.
 
 ---
 
-## Runtime Evidence Pipeline
-
-For infrastructure domains, data flows through a clear pipeline:
+## Repository structure
 
 ```
-Raw logs
- → light normalization
- → coarse segmentation
- → structured narration (signal extraction)
- → retrieval
- → agent reasoning
+Agents/
+├── core/                # Agent kernel, ReAct logic, tool routing
+├── rag/                 # Retrieval layers (Linux, OpenStack, arXiv, comparison)
+├── sources/             # Ingestion & normalization code (Linux / OpenStack)
+│   ├── linux/
+│   └── openstack/
+├── data/                # Runtime artifacts & evidence (gitignored)
+│   ├── arxiv_index/     # FAISS index for research knowledge
+│   ├── linux_index/     # FAISS index for Linux runtime logs
+│   └── sources/
+│       ├── linux/       # Raw Linux logs
+│       └── openstack/   # Raw OpenStack logs (normal / abnormal)
+├── execution/           # LLM runtimes (local / OpenAI)
+├── examples/            # Runnable agent demos (single / ReAct / RAG / multi)
+├── orchestration/       # Multi-agent / graph experiments
+├── tests/               # Kernel and routing tests
+├── run.py               # Unified CLI entrypoint
+└── README.md
 ```
-
-Narration **highlights signals** (e.g. legacy behavior, retries, disabled features)
-without hard-coding diagnoses or rules.
-
-Agents remain responsible for interpretation.
 
 ---
 
-## Example Usage
+## Running the system
 
-### Infrastructure / Runtime Debugging
+### Runtime diagnostics (Linux / OpenStack)
 
 ```bash
-python run.py \
-  --mode react \
-  --llm local \
-  --domain runtime \
-  --query "Are there any issues or anomalies in this Linux boot?"
+python run.py   --mode react   --llm local   --domain runtime   --query "Why is the OpenStack service unstable?"
 ```
 
-### Research / Knowledge Exploration
+### Knowledge search (arXiv)
 
 ```bash
-python run.py \
-  --mode react \
-  --llm local \
-  --domain knowledge \
-  --query "Show research on dialogue system safety"
+python run.py   --mode react   --llm local   --domain knowledge   --query "Research on dialogue system safety"
+```
+
+### Single agent (no tools)
+
+```bash
+python run.py   --mode single   --llm local   --query "Explain OpenStack at a high level"
 ```
 
 ---
 
-## Why arXiv Is Included
 
-arXiv is included **deliberately but safely**.
+## License
 
-It serves as:
-- a contrasting domain to runtime evidence
-- a demonstration that the same agent architecture can reason over
-  very different kinds of truth
-- a foundation for future “runtime + theory” explanations (opt-in only)
-
-arXiv is **never mixed implicitly** with infrastructure logs.
-
----
-
-## What This Repository Is (and Isn’t)
-
-**This repo is:**
-- a learning and experimentation playground
-- a reference for clean agent architecture
-- focused on reasoning quality, not benchmarks
-- intentionally minimal and readable
-
-**This repo is not:**
-- a production framework
-- an automated remediation system
-- a rules-based expert system
-
----
-
-## Status & Direction
-
-Current strengths:
-- clean agent abstractions
-- explicit domain control
-- grounded runtime reasoning
-- extensible evidence pipelines
-
-Planned / natural extensions:
-- OpenStack + Linux cross-layer diagnostics
-- baseline vs incident comparison
-- severity-aware narration
-- metrics and trace integration
+MIT

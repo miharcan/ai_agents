@@ -1,6 +1,6 @@
 from execution.llm_runtime import run_llm
 
-def main(query: str, llm_backend: str):
+def main(query: str, llm_backend: str, domain=None):
     response = run_llm(query, backend=llm_backend)
     print(response)
 

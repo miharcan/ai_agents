@@ -35,21 +35,169 @@ class ReActAgent(AgentKernel):
         return self.final_answer(query, steps)
 
     def final_answer(self, query, steps):
-        """
-        Synthesize a final answer from ReAct reasoning steps.
-        """
+        def pretty_subsystem(name: str) -> str:
+            return name.replace("_", " ").replace("openstack", "OpenStack").title()
+
+        def infer_subsystem(query: str) -> str | None:
+            q = query.lower()
+            # Linux (existing)
+            if "wifi" in q or "wireless" in q or "wlan" in q:
+                return "wireless"
+            if "network" in q or "ethernet" in q:
+                return "network"
+            if "disk" in q or "filesystem" in q:
+                return "storage"
+
+            # --- OpenStack ---
+            if "api" in q or "keystone" in q or "endpoint" in q:
+                return "openstack_api"
+            if "nova" in q or "compute" in q or "vm" in q:
+                return "openstack_compute"
+            if "rabbit" in q or "mq" in q or "queue" in q:
+                return "openstack_mq"
+            if "database" in q or "mysql" in q or "mariadb" in q:
+                return "openstack_db"
+
+            # Generic OpenStack fallback
+            if "openstack" in q:
+                return "openstack_control"
+
+            return None
+
+        domain = self.state.get("domain", "runtime")
+
+        # Collect retrieved evidence text (if any)
+        evidence_text = ""
+        for step in steps:
+            if len(step) == 4:
+                _, _, _, result = step
+                if isinstance(result, str):
+                    evidence_text += " " + result.lower()
+
+        subsystem_coverage = {
+            # Linux
+            "wireless": ["wifi", "wireless", "wlan", "802.11"],
+            "network": ["eth", "ethernet", "network interface"],
+            "storage": ["ext", "fs", "disk", "scsi"],
+            # OpenStack
+            "openstack_api": ["keystone", "api", "endpoint", "http"],
+            "openstack_compute": ["nova", "compute", "instance", "scheduler"],
+            "openstack_mq": ["rabbit", "amqp", "queue", "message"],
+            "openstack_db": ["mysql", "mariadb", "database", "sql"],
+            "openstack_control": ["openstack", "nova", "keystone", "glance"],
+        }
+
+        subsystem = infer_subsystem(query)
+
+        if not subsystem:
+            for name, indicators in subsystem_coverage.items():
+                if any(i in evidence_text for i in indicators):
+                    subsystem = name
+                    break
+
+        next_evidence = {
+            # Linux
+            "wireless": [
+                "Wireless hardware detection during boot",
+                "Wireless network interface initialization events",
+                "Network management service logs related to Wi-Fi",
+            ],
+            "network": [
+                "Network interface configuration events",
+                "Link status or connection negotiation logs",
+                "Firewall or packet filtering logs",
+            ],
+            "storage": [
+                "Disk or block device detection events",
+                "Filesystem mount and error logs",
+                "I/O error or timeout messages",
+            ],
+            # OpenStack
+            "openstack_api": [
+                "Keystone API logs",
+                "HTTP request/response error logs",
+                "Authentication failure events",
+            ],
+            "openstack_compute": [
+                "Nova compute service logs",
+                "Scheduler decision logs",
+                "Instance lifecycle state transitions",
+            ],
+            "openstack_mq": [
+                "RabbitMQ connection logs",
+                "Message retry or backlog metrics",
+                "AMQP heartbeat failures",
+            ],
+            "openstack_db": [
+                "Database connection errors",
+                "Slow query logs",
+                "Transaction timeout events",
+            ],
+            "openstack_control": [
+                "Service health summaries",
+                "Inter-service communication logs",
+            ],
+        }
+
+        scope_note = ""
+        gap_note = ""
+        next_evidence_note = ""
+
+        if domain == "runtime":
+            scope_note = (
+                "Note: The following answer is based solely on the available "
+                "runtime system logs and observed behavior. "
+                "If relevant events are not present in these logs, "
+                "they cannot be assessed.\n\n"
+            )
+
+            indicators = subsystem_coverage.get(subsystem, [])
+            if indicators and not any(i in evidence_text for i in indicators):
+                gap_note = (
+                    f"Evidence gap detected: The available runtime logs do not "
+                    f"contain information related to the {pretty_subsystem(subsystem)} subsystem."
+                    f"No initialization, errors, or events for this subsystem "
+                    f"are present in the provided evidence.\n\n"
+                )
+                
+                if subsystem in next_evidence:
+                    needed = next_evidence[subsystem]
+                    bullets = "\n".join(f"- {item}" for item in needed)
+
+                    next_evidence_note = (
+                        "To investigate this issue further, additional runtime evidence "
+                        "would be required, such as:\n"
+                        f"{bullets}\n\n"
+                    )
+
         reasoning = "\n".join(str(step) for step in steps)
 
         prompt = f"""
-You are a reasoning agent.
+    You are a reasoning agent.
 
-Original question:
-{query}
+    {scope_note}{gap_note}
+    Original question:
+    {query}
 
-Reasoning trace:
-{reasoning}
+    Reasoning trace:
+    {reasoning}
 
-Provide a clear, concise final answer to the original question.
-"""
+    Provide a clear, concise final answer that respects the scope
+    and limitations of the available evidence.
+    """
 
-        return run_llm(prompt, backend=self.llm_backend)
+        # return run_llm(prompt, backend=self.llm_backend)
+        llm_answer = run_llm(prompt, backend=self.llm_backend)
+
+        final = ""
+        if scope_note:
+            final += scope_note
+        if gap_note:
+            final += gap_note
+        if next_evidence_note:
+            final += next_evidence_note
+
+        final += llm_answer
+        return final
+
+    

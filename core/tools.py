@@ -18,10 +18,7 @@ class RuntimeEvidenceTool:
         if self.openstack:
             results.extend(self.openstack.retrieve(query))
 
-        return "\n".join(n.text for n in results)
-
-
-
+        return "\n".join(n.node.text for n in results)
 
 
 class LinuxLogSearchTool:
@@ -39,7 +36,7 @@ class LinuxLogSearchTool:
 class ArxivSearchTool:
     name = "search_arxiv"
     description = (
-        "Search academic and research literature for theoretical explanations, "
+        "Search academic and research literature for theoretical explanations,"
         "background knowledge, or known system design patterns."
     )
 

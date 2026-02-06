@@ -39,7 +39,7 @@ def load_linux_retriever(log_path: str):
         )
 
     else:
-        print("🔨 Building Linux log index...")
+        print("Building Linux log index...")
         INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
         docs = load_linux_documents(log_path)

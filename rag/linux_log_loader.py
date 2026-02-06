@@ -1,8 +1,8 @@
 from llama_index.core import Document
-from data.sources.linux.ingest import load_log_file
-from data.sources.linux.normalize import normalize_line
-from data.sources.linux.segment import build_boot_segment
-from data.sources.linux.narrate import generate_boot_narrative
+from sources.linux.ingest import load_log_file
+from sources.linux.normalize import normalize_line
+from sources.linux.segment import build_boot_segment
+from sources.linux.narrate import generate_boot_narrative
 
 
 def load_linux_documents(log_path: str):
