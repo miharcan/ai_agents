@@ -1,5 +1,6 @@
 from core.react_agent import ReActAgent
-from core.tools import RuntimeEvidenceTool, ArxivSearchTool, OpenStackCompareTool
+from core.tools import (RuntimeEvidenceTool, ArxivSearchTool,
+                        OpenStackCompareTool)
 from rag.linux_index import load_linux_retriever
 from rag.document_index import load_docs
 from rag.openstack_compare import load_openstack_comparison_retriever
@@ -53,6 +54,7 @@ def run(agent, query):
     else:
         answer = agent.run(query)
         print(answer)
+
 
 def _run_runtime_comparison(agent, query, compare, current_logs):
     """

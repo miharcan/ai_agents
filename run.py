@@ -41,7 +41,7 @@ def main():
 
     parser.add_argument(
         "--llm",
-        choices=["openai", "local"],
+            choices=["openai", "mistral", "llama3", "phi3"],
         default="openai",
         help="LLM backend"
     )

@@ -1,9 +1,15 @@
 import subprocess
-import os
 
-model = os.environ.get("OLLAMA_MODEL", "llama3:8b")
+OLLAMA_MODEL_MAP = {
+    "tiny": "phi3:mini",
+    "mistral": "mistral",
+    "llama3": "llama3:8b",
+    "phi3": "phi3:medium",
+}
 
-def run_local(prompt: str) -> str:
+
+def run_local(prompt: str, llm_name: str) -> str:
+    model = OLLAMA_MODEL_MAP[llm_name]
     process = subprocess.run(
         ["ollama", "run", model],
         input=prompt,
