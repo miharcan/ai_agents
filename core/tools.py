@@ -20,6 +20,23 @@ class RuntimeEvidenceTool:
 
         return "\n".join(n.node.text for n in results)
 
+    def compare_openstack(self, query: str):
+        """
+        Retrieve and compare normal vs abnormal OpenStack runtime evidence.
+        """
+        normal = self.openstack.search(
+            query, corpus="normal", k=5
+        )
+        abnormal = self.openstack.search(
+            query, corpus="abnormal", k=5
+        )
+
+        return {
+            "normal": normal,
+            "abnormal": abnormal,
+        }
+
+
 
 class LinuxLogSearchTool:
     name = "search_linux_logs"
@@ -52,8 +69,19 @@ class ToolRegistry:
     def __init__(self):
         self.tools = {}
 
-    def register(self, name, fn):
-        self.tools[name] = fn
-    
+    def register(self, tool):
+        self.tools[tool.name] = tool
+
     def call(self, name, **kwargs):
         return self.tools[name](**kwargs)
+
+
+class OpenStackCompareTool:
+    name = "compare_openstack"
+    description = "Compare normal vs abnormal OpenStack runtime behavior"
+
+    def __init__(self, runtime_tool: RuntimeEvidenceTool):
+        self.runtime_tool = runtime_tool
+
+    def __call__(self, query: str):
+        return self.runtime_tool.compare_openstack(query)

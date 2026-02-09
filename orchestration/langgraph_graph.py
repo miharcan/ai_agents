@@ -26,7 +26,6 @@ def worker(state):
     return {"result": result}
 
 
-
 def finalizer(state: AgentState):
     return {
         "final_answer": state.get("result")

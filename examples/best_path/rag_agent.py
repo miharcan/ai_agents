@@ -8,6 +8,7 @@ from rag.document_index import load_docs
 def main(query, llm_backend, domain):
     agent = ReActAgent(llm_backend=llm_backend)
     agent.state["domain"] = domain
+    
 
     # --- Domain-specific RAG ---
     if domain == "runtime":

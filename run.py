@@ -53,6 +53,19 @@ def main():
         help="Epistemic domain"
     )
 
+    parser.add_argument(
+        "--compare",
+        nargs=2,
+        choices=["normal", "abnormal"],
+        help="Compare two runtime baselines"
+    )
+
+    parser.add_argument(
+        "--current-logs",
+        type=str,
+        help="Path to current incident logs (ephemeral)"
+    )
+
     args = parser.parse_args()
 
     if args.mode == "single":

@@ -1,6 +1,7 @@
 from core.agent_kernel import AgentKernel
 from execution.llm_runtime import run_llm
 
+
 class ReActAgent(AgentKernel):
     def __init__(self, llm_backend: str):
         self.llm_backend = llm_backend
@@ -8,7 +9,16 @@ class ReActAgent(AgentKernel):
 
     def route_tools(self, thought):
         domain = self.state.get("domain", "runtime")
+        compare = self.state.get("compare")
 
+        # Comparison mode takes priority
+        if domain == "runtime" and compare:
+            # ensure comparison happens once
+            if not self.state.get("_did_compare"):
+                self.state["_did_compare"] = True
+                return ("compare_openstack", {"query": thought})
+
+        # Normal runtime retrieval
         if domain == "runtime":
             return ("search_runtime_evidence", {"query": thought})
 
@@ -18,6 +28,7 @@ class ReActAgent(AgentKernel):
         return None
 
     def run(self, query):
+        self.state.pop("_did_compare", None)
         steps = []
 
         for _ in range(3):
@@ -33,6 +44,29 @@ class ReActAgent(AgentKernel):
             steps.append((thought, name, args, result))
 
         return self.final_answer(query, steps)
+
+    def _render_openstack_comparison(self, result: dict) -> str:
+        normal = result.get("normal", [])
+        abnormal = result.get("abnormal", [])
+
+        def flatten(nodes):
+            texts = []
+            for n in nodes:
+                if hasattr(n, "node") and hasattr(n.node, "text"):
+                    texts.append(n.node.text)
+                elif hasattr(n, "text"):
+                    texts.append(n.text)
+            return texts
+
+        normal_text = flatten(normal)
+        abnormal_text = flatten(abnormal)
+
+        return (
+            "\n--- Normal baseline evidence ---\n"
+            + "\n".join(normal_text[:5]) +
+            "\n\n--- Abnormal baseline evidence ---\n"
+            + "\n".join(abnormal_text[:5])
+        )
 
     def final_answer(self, query, steps):
         def pretty_subsystem(name: str) -> str:
@@ -72,7 +106,13 @@ class ReActAgent(AgentKernel):
             if len(step) == 4:
                 _, _, _, result = step
                 if isinstance(result, str):
-                    evidence_text += " " + result.lower()
+                    # In compare mode, suppress generic runtime evidence
+                    if not self.state.get("compare"):
+                        evidence_text += " " + result
+
+                elif isinstance(result, dict) and "normal" in result and "abnormal" in result:
+                    comparison_text = self._render_openstack_comparison(result)
+                    evidence_text += " " + comparison_text
 
         subsystem_coverage = {
             # Linux
@@ -172,19 +212,38 @@ class ReActAgent(AgentKernel):
 
         reasoning = "\n".join(str(step) for step in steps)
 
+        evidence_block = ""
+        if evidence_text:
+            evidence_block = f"""
+        Retrieved runtime evidence:
+        {evidence_text}
+        """
+            
+        if self.state.get("compare"):
+            evidence_block = (
+                "IMPORTANT:\n"
+                "Only differences between NORMAL and ABNORMAL baselines "
+                "should be considered causal.\n"
+                "Environmental conditions present in BOTH baselines "
+                "(e.g., old kernel, low memory) MUST NOT be treated as root causes.\n\n"
+                + evidence_block
+            )
+
         prompt = f"""
-    You are a reasoning agent.
+You are a reasoning agent.
 
-    {scope_note}{gap_note}
-    Original question:
-    {query}
+{scope_note}{gap_note}
+Original question:
+{query}
 
-    Reasoning trace:
-    {reasoning}
+{evidence_block}
 
-    Provide a clear, concise final answer that respects the scope
-    and limitations of the available evidence.
-    """
+Reasoning trace:
+{reasoning}
+
+Based strictly on the retrieved evidence above,
+provide a clear, concise final answer.
+"""
 
         # return run_llm(prompt, backend=self.llm_backend)
         llm_answer = run_llm(prompt, backend=self.llm_backend)

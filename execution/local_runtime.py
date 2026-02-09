@@ -1,8 +1,11 @@
 import subprocess
+import os
+
+model = os.environ.get("OLLAMA_MODEL", "llama3:8b")
 
 def run_local(prompt: str) -> str:
     process = subprocess.run(
-        ["ollama", "run", "mistral"],
+        ["ollama", "run", model],
         input=prompt,
         text=True,
         capture_output=True,
