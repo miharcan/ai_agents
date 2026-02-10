@@ -214,6 +214,7 @@ python run.py --llm tiny     # very fast smoke tests
 python run.py --llm mistral  # log summarisation
 python run.py --llm llama3   # decent local reasoning
 python run.py --llm phi3     # strong local diagnostics
+python run.py --llm qwen14   # stronger local diagnostics
 python run.py --llm openai   # strongest reasoning
 ```
 
