@@ -10,7 +10,7 @@ def run_llm(prompt: str, backend: str = "openai") -> str:
         print("LLM backend: OpenAI")
         return run_openai(prompt)
 
-    elif backend in {"tiny", "mistral", "llama3", "phi3"}:
+    elif backend in {"tiny", "mistral", "llama3", "phi3", "qwen14"}:
         print(f"LLM backend: Local {backend} (Ollama)")
         return run_local(prompt, backend)
 

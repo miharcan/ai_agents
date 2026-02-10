@@ -5,6 +5,7 @@ OLLAMA_MODEL_MAP = {
     "mistral": "mistral",
     "llama3": "llama3:8b",
     "phi3": "phi3:medium",
+    "qwen14": "qwen2.5:14b",
 }
 
 

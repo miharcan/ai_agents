@@ -225,6 +225,7 @@ Under the hood (via Ollama):
 | mistral | mistral |
 | llama3 | llama3:8b |
 | phi3 | phi3:medium |
+| qwen14 | qwen2.5:14b |
 
 Missing local models are **downloaded automatically** by Ollama.
 
